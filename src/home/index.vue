@@ -22,7 +22,7 @@
         <div v-for="n in starXNum" :key="n" class="starColBox" :style="{ marginBottom: `${spaceY}px` }">
           <div v-for="j in starYNum" :key="j" class="starRow" :style="{ marginRight: `${spaceX}px` }">
             <div :class="['starIcon', showStar(n, j) && 'show']" :style="{ width: `${starX}px`, height: `${starX}px` }">
-              <div class="starCenter"></div>
+              <div :class="['starCenter', isSelectedStar(n, j) && `animate-${getRandom(0, 2, 0)}`]"></div>
             </div>
           </div>
         </div>
@@ -105,6 +105,7 @@ export default {
     })
   },
   methods: {
+    getRandom,
     init () {
       this.setData()
       this.draw()
@@ -130,8 +131,8 @@ export default {
 
     setData () {
       this.initStarPos()
-      this.lineWidth = 2.5
-      this.lineBlurWidth = 6.5
+      this.lineWidth = 2
+      this.lineBlurWidth = 6
       this.canvas = document.getElementById('starMap')
       if (!this.canvas) return console.error('starMap: this.canvas is null')
       this.ctx = this.canvas.getContext('2d')
@@ -357,8 +358,8 @@ export default {
       const x = e.clientX || e.touches[0].clientX
       const y = e.clientY || e.touches[0].clientY
       const { left, top, right, bottom } = this.canvasRect
-      console.log('x < left - 20 || x > right + 20 || y < top - 20 || y > bottom + 20', x < left - 20 || x > right + 20 || y < top - 20 || y > bottom + 20)
-      if (x < left - 20 || x > right + 20 || y < top - 20 || y > bottom + 20) {
+      const outDistance = 40
+      if (x < left - outDistance || x > right + outDistance || y < top - outDistance || y > bottom + outDistance) {
         this.connectEnd(true)
         return true
       }
@@ -420,6 +421,9 @@ export default {
     // },
     showStar (n, j) {
       return this.pointIndexArr.includes((j - 1) + (n - 1) * 5)
+    },
+    isSelectedStar (n, j) {
+      return this.points.includes((j - 1) + (n - 1) * 5)
     },
     lockScroll () {
       if (this.unlock) return
