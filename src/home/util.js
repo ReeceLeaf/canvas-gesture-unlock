@@ -56,7 +56,6 @@ const INTERNAL_LOCK_KEY = 'data-scroll-lock'
 export const isLocked = !!document.body.getAttribute(LOCK_BODY_KEY)
 
 export const unLockScroll = () => {
-  console.log('unLockScroll==')
   const str = document.body.getAttribute(INTERNAL_LOCK_KEY)
   if (!str) return
 
@@ -78,7 +77,6 @@ export const unLockScroll = () => {
 }
 
 export const lockScroll = () => {
-  console.log('lockScroll==')
   if (isLocked) return unLockScroll
 
   const htmlStyle = document.documentElement.style

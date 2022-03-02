@@ -10,11 +10,13 @@
         :height="height"
         :style="{ width, height }"
         @touchstart="touchStart"
-        @mousedown="mouseDown"
         @touchmove="touchMove"
-        @mousemove="mouseMove"
         @touchend="touchEnd"
+        @mousedown="mouseDown"
+        @mousemove="mouseMove"
         @mouseup="mouseUp"
+        @mouseout="touchEnd"
+        @mouseenter="touchStart"
       ></canvas>
       <div class="starsList">
         <div v-for="n in starXNum" :key="n" class="starColBox" :style="{ marginBottom: `${spaceY}px` }">
@@ -301,10 +303,8 @@ export default {
       if (this.checkLimit()) return
       this.lockScroll()
       const rect = this.$refs.canvas.getBoundingClientRect() // 此处获取canvas位置，防止页面滚动时位置发生变化
-      console.log('rect', rect)
       this.canvasRect = { x: rect.left, y: rect.top, left: rect.left, right: rect.right, bottom: rect.bottom, top: rect.top }
       const [x, y] = this.getEventPos(e)
-      console.log('x, y', x, y)
 
       // this.points = []
       const index = this.indexOfPoint(x, y)
@@ -317,6 +317,7 @@ export default {
       }
     },
     touchMove (e) {
+      if (!this.connecting) return // 防止touchmove移出canvas区域后不松手，滚动后页面位置改变在canvas外其他位置触发连接
       if (this.checkBeyondCanvas(e)) return
       if (this.checkLimit()) return
       this.lockScroll() // 手指活动过程中禁止页面滚动
@@ -356,6 +357,7 @@ export default {
       const x = e.clientX || e.touches[0].clientX
       const y = e.clientY || e.touches[0].clientY
       const { left, top, right, bottom } = this.canvasRect
+      console.log('x < left - 20 || x > right + 20 || y < top - 20 || y > bottom + 20', x < left - 20 || x > right + 20 || y < top - 20 || y > bottom + 20)
       if (x < left - 20 || x > right + 20 || y < top - 20 || y > bottom + 20) {
         this.connectEnd(true)
         return true
