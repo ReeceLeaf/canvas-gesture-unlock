@@ -379,7 +379,8 @@ export default {
     initPointShowArr () {
       const result = []
       const originArr = []
-      const arrLen = getRandom(25, this.starXNum * this.starYNum, 0) // 初始化时随机显示星星最大最小数量 getRandom(21, 25, 0)
+      const arrLen = getRandom(10, this.starXNum * this.starYNum, 0) // 初始化时随机显示星星最大最小数量 getRandom(21, 25, 0)
+      // const arrLen = getRandom(10, 15, 0)
       const starOriginLen = this.starXNum * this.starYNum
       for (let i = 0; i < starOriginLen; i++) {
         originArr.push(i)
