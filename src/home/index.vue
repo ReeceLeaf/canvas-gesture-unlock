@@ -12,9 +12,9 @@
         @touchstart="touchStart"
         @touchmove="touchMove"
         @touchend="touchEnd"
-        @mousedown="mouseDown"
-        @mousemove="mouseMove"
-        @mouseup="mouseUp"
+        @mousedown="touchStart"
+        @mousemove="touchMove"
+        @mouseup="touchEnd"
         @mouseout="touchEnd"
         @mouseenter="touchStart"
       ></canvas>
@@ -47,8 +47,8 @@ export default {
     return {
       starXNum: 5,
       starYNum: 5,
-      minConnectLen: 5,
-      maxConnectLen: 5 * 5,
+      minLength: 5,
+      maxLength: 5 * 5,
       canvas: null,
       circleSizeRatio: 0.1, // 圆圈直径/画布比例
       circleHollowRatio: 0.5, // 圆圈内部镂空直径/圆圈半径
@@ -149,29 +149,29 @@ export default {
       if (this.pointsLen === 0) return
       this.rearrangePoints(x, y)
 
+      console.log('3')
       this.drawLine(x, y)
-      // this.drawCircle()
     },
     /**
        * 两点连线中有手指未触摸到的点，但是在线上的情况，
        * 1. 判断是否有多余的点
        * 2. 判断方向
        *  a.竖线： x1 = x2
-       *   - 从上到下： y1 < y2  => 1
-       *   - 从下到上： y1 > y2  => 2
+       *   - 从上到下： y1 < y2
+       *   - 从下到上： y1 > y2
        *  b.横线：y1 = y2
-       *   - 从左到右：x1 < x2  => 3
-       *   - 从右到左：x1 > x2  => 4
+       *   - 从左到右：x1 < x2
+       *   - 从右到左：x1 > x2
        *  c.斜线(\)
-       *   - 从上到下：x1 < x2  y1 < y2  => 5
-       *   - 从下到上：x1 > x2  y1 > y2  => 6
+       *   - 从上到下：x1 < x2  y1 < y2
+       *   - 从下到上：x1 > x2  y1 > y2
        *  d.斜线(/)
-       *   - 从上到下：x1 > x2  y1 < y2  => 7
-       *   - 从下到上：x1 < x2 y1 > y2  => 8
+       *   - 从上到下：x1 > x2  y1 < y2
+       *   - 从下到上：x1 < x2 y1 > y2
        * 3. 给点数组重新排序
        * 4. 与points合并
-       * 5. 长度超出10个则从末尾抛出
-       * 6. 开始画线
+       * 5. 长度超出最大限制个则从末尾抛出
+       * 6. 清空画布重新绘制
        */
     rearrangePoints () { // 根据最后两个点之间连线，如果有多出的点进行重排，否则不处理
       if (this.pointsLen === 1) return
@@ -183,7 +183,7 @@ export default {
       const x2 = endPos.x
       const y2 = endPos.y
 
-      this.judgeCtx.beginPath() // 开始路径，如果没有这个和结束路径包围，所有线条都是最后那根线条的样式了
+      this.judgeCtx.beginPath()
       this.judgeCtx.moveTo(x1, y1) // 开始位置
       this.judgeCtx.lineTo(x2, y2) // 画到此处
 
@@ -200,33 +200,28 @@ export default {
       const extraPosArr = extraArr.map(item => {
         return { ...this.pointPos[item], i: item }
       })
-      let extraSortArr = []
-      if (x1 === x2 && y1 < y2) { // 竖线 从上到下
-        extraSortArr = extraPosArr.sort((a, b) => a.y - b.y)
-      } else if (x1 === x2 && y1 > y2) { // 竖线 从下到上
-        extraSortArr = extraPosArr.sort((a, b) => b.y - a.y)
-      } else if (y1 === y2 && x1 < x2) { // 横线 从左到右
-        extraSortArr = extraPosArr.sort((a, b) => a.x - b.x)
-      } else if (y1 === y2 && x1 > x2) { // 横线 从右到左
-        extraSortArr = extraPosArr.sort((a, b) => b.x - a.x)
-      } else if (x1 < x2 && y1 < y2) { // 斜线(\) 从上到下
-        extraSortArr = extraPosArr.sort((a, b) => (a.x - b.x) && (a.y - b.y))
-      } else if (x1 > x2 && y1 > y2) { // 斜线(\) 从下到上
-        extraSortArr = extraPosArr.sort((a, b) => (b.x - a.x) && (b.y - a.y))
-      } else if (x1 > x2 && y1 < y2) { // 斜线(/) 从上到下
-        extraSortArr = extraPosArr.sort((a, b) => (b.x - a.x) && (a.y - b.y))
-      } else if (x1 < x2 && y1 > y2) { // 斜线(/) 从下到上
-        extraSortArr = extraPosArr.sort((a, b) => (a.x - b.x) && (b.y - a.y))
-      }
+
+      const getExtraSortMap = new Map([
+        [[0, -1], (a, b) => a.y - b.y],
+        [[0, 1], (a, b) => b.y - a.y],
+        [[-1, 0], (a, b) => a.x - b.x],
+        [[1, 0], (a, b) => b.x - a.x],
+        [[-1, -1], (a, b) => (a.x - b.x) && (a.y - b.y)],
+        [[1, 1], (a, b) => (b.x - a.x) && (b.y - a.y)],
+        [[1, -1], (a, b) => (b.x - a.x) && (a.y - b.y)],
+        [[-1, 1], (a, b) => (a.x - b.x) && (b.y - a.y)]
+      ])
+
+      const extraSortArr = extraPosArr.sort(getExtraSortMap.get([this.getEqualVal(x1, x2), this.getEqualVal(y1, y2)]))
 
       this.points.splice(this.pointsLen - 1, 0, ...(extraSortArr.map(item => item.i)))
-      const len = this.points.length
-      if (len > 10) {
-        for (let i = 0; i < len - 10; i++) {
-          this.points.pop()
-        }
-      }
+      this.pointsLen > this.maxLength && this.points.splice(this.maxLength, this.pointsLen - this.maxLength)
     },
+
+    getEqualVal (a, b) {
+      return a - b === 0 ? 0 : a - b > 0 ? 1 : -1
+    },
+
     getPointPos (i) {
       return this.pointPos[this.points[i]]
     },
@@ -308,40 +303,26 @@ export default {
       }
     },
     touchMove (e) {
+      console.log('touchMove', e)
       if (this.checkBeyondCanvas(e)) return // 防止touchmove移出canvas区域后不松手，滚动后页面位置改变在canvas外其他位置触发连接
       if (this.checkLimit()) return
       this.lockScroll() // 手指活动过程中禁止页面滚动
       const [x, y] = this.getEventPos(e)
 
-      const index = this.indexOfPoint(x, y)
-      if (this.reconnectStart) {
-        if (index !== this.points[this.pointsLen - 1] && index !== this.points[0]) return
-        else {
-          this.reconnectStart = false
-          if (index === this.points[0]) {
-            this.points.reverse()
-          }
-        }
+      const idx = this.indexOfPoint(x, y)
+      if (this.reconnectStart && (idx === this.points[this.pointsLen - 1] || idx !== this.points[0])) {
+        this.reconnectStart = false
+
+        idx === this.points[0] && this.points.reverse()
       }
-      this.pushToPoints(index)
+      this.pushToPoints(idx)
 
       this.draw(x, y)
     },
 
     touchEnd (e) {
-      this.connectEnd(true)
-    },
-    mouseDown (e) {
-      // console.log('mouseDown', e)
-      this.touchStart(e)
-    },
-    mouseMove (e) { // 兼容PC
-      // console.log('mouseMove', e)
-      this.touchMove(e)
-    },
-    mouseUp (e) {
-      // console.log('mouseUp', e)
-      this.touchEnd(e)
+      console.log('touchEnd', e)
+      this.connectEnd()
     },
     checkBeyondCanvas (e) { // 校验手指是否超出canvas区域
       const x = e.clientX || e.touches[0].clientX
@@ -349,37 +330,34 @@ export default {
       const { left, top, right, bottom } = this.canvasRect
       const outDistance = 40
       if (x < left - outDistance || x > right + outDistance || y < top - outDistance || y > bottom + outDistance) {
-        this.connectEnd(true)
-        return true
-      }
-      return false
-    },
-    checkLimit () {
-      if (this.pointsLen >= this.starXNum * this.starYNum) { // 这里设置星星可链接的最大数量
-        !this.reconnectStart && this.showToast()
         this.connectEnd()
         return true
       }
       return false
     },
-    connectEnd (end) {
-      if (!end) return
+    checkLimit () {
+      if (this.pointsLen >= this.maxLength) { // 这里设置星星可链接的最大数量
+        !this.reconnectStart && this.showToast(`最多连接${this.maxLength}个点哦～`)
+        this.connectEnd()
+        return true
+      }
+      return false
+    },
+    connectEnd () {
       this.unlockScroll()
       if (this.pointsLen === 1) {
         this.points = []
       }
       this.draw()
 
-      if (this.pointsLen > 1) {
-        if (this.pointsLen < this.minConnectLen && !this.reconnectStart) {
-          console.log(`至少连接${this.minConnectLen}颗星星哦～`)
-        }
+      if (this.pointsLen > 1 && this.pointsLen < this.minLength && !this.reconnectStart) {
+        this.showToast(`至少连接${this.minLength}颗星星哦～`)
       }
     },
     initPointShowArr () {
       const result = []
       const originArr = []
-      const arrLen = getRandom(10, this.starXNum * this.starYNum, 0) // 初始化时随机显示星星最大最小数量 getRandom(21, 25, 0)
+      const arrLen = getRandom(25, this.starXNum * this.starYNum, 0) // 初始化时随机显示星星最大最小数量 getRandom(21, 25, 0)
       // const arrLen = getRandom(10, 15, 0)
       const starOriginLen = this.starXNum * this.starYNum
       for (let i = 0; i < starOriginLen; i++) {
@@ -397,15 +375,6 @@ export default {
       result.sort((a, b) => a - b)
       return result
     },
-    // drawCircle () { // 使用canvas画星星
-    //   // this.pointPos = []
-    //   this.pointPos.forEach((item, i) => {
-    //     this.ctx.beginPath()
-    //     this.ctx.strokeStyle = 'red'
-    //     this.ctx.arc(item.x, item.y, this.starX / 2, 0, Math.PI * 2, true)
-    //     this.ctx.stroke()
-    //   })
-    // },
     showStar (n, j) {
       return this.pointIndexArr.includes((j - 1) + (n - 1) * 5)
     },
@@ -422,8 +391,8 @@ export default {
         this.unlock = null
       }
     },
-    showToast: debounce(function () {
-      console.log(`最多连接${this.maxConnectLen}个点哦～`)
+    showToast: debounce(function (msg) {
+      console.log(msg)
     }, 5000, true)
   }
 }
