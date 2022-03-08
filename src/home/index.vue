@@ -59,7 +59,7 @@ export default {
       numColumn: 5, // 列数
       pointPos: [], // 圆圈的坐标数组(x,y)
       points: [], // 已经选中的圈编号(i)
-      isDownOnPoint: false, // 起始按下是否在某个圆圈的范围
+      // isDownOnPoint: false, // 起始按下是否在某个圆圈的范围
       lineWidth: 1,
       doublePI: 2 * Math.PI,
       lineBlurWidth: 13,
@@ -72,7 +72,6 @@ export default {
         y: 0
       },
       unlock: null,
-      connecting: false,
       judgeCtx: null // canvas测试两点之间连线没有触摸到的点，不做展示
     }
   },
@@ -175,7 +174,6 @@ export default {
        * 6. 开始画线
        */
     rearrangePoints () { // 根据最后两个点之间连线，如果有多出的点进行重排，否则不处理
-      // for (let i = 1; i < this.pointsLen; i++) {
       if (this.pointsLen === 1) return
       const endPrevPos = this.getPointPos(this.pointsLen - 2)
       const endPos = this.getPointPos(this.pointsLen - 1)
@@ -203,7 +201,6 @@ export default {
         return { ...this.pointPos[item], i: item }
       })
       let extraSortArr = []
-      // let lineDirection = 1
       if (x1 === x2 && y1 < y2) { // 竖线 从上到下
         extraSortArr = extraPosArr.sort((a, b) => a.y - b.y)
       } else if (x1 === x2 && y1 > y2) { // 竖线 从下到上
@@ -259,10 +256,6 @@ export default {
       const grd = this.ctx.createLinearGradient(x1, y1, x2, y2) // 线性渐变的起止坐标
       grd.addColorStop(0, '#c9b8ff')
       grd.addColorStop(1, '#aa4fff')
-      // 随机渐变色
-      // grd.addColorStop(0, randomHexColor())
-      // grd.addColorStop(0.5, randomHexColor())
-      // grd.addColorStop(1, randomHexColor())
       this.ctx.strokeStyle = grd
 
       this.ctx.shadowBlur = this.lineBlurWidth
@@ -307,19 +300,15 @@ export default {
       this.canvasRect = { x: rect.left, y: rect.top, left: rect.left, right: rect.right, bottom: rect.bottom, top: rect.top }
       const [x, y] = this.getEventPos(e)
 
-      // this.points = []
       const index = this.indexOfPoint(x, y)
-      if (index >= 0) this.connecting = true
       if (this.pointsLen) {
-        this.isDownOnPoint = true
         this.reconnectStart = true
       } else {
-        this.isDownOnPoint = this.pushToPoints(index)
+        this.pushToPoints(index)
       }
     },
     touchMove (e) {
-      if (!this.connecting) return // 防止touchmove移出canvas区域后不松手，滚动后页面位置改变在canvas外其他位置触发连接
-      if (this.checkBeyondCanvas(e)) return
+      if (this.checkBeyondCanvas(e)) return // 防止touchmove移出canvas区域后不松手，滚动后页面位置改变在canvas外其他位置触发连接
       if (this.checkLimit()) return
       this.lockScroll() // 手指活动过程中禁止页面滚动
       const [x, y] = this.getEventPos(e)
@@ -374,11 +363,8 @@ export default {
       return false
     },
     connectEnd (end) {
-      if (!this.isDownOnPoint && !end) return
+      if (!end) return
       this.unlockScroll()
-      // document.body.style.position = 'static'
-      this.connecting = false
-      this.isDownOnPoint = false
       if (this.pointsLen === 1) {
         this.points = []
       }
